@@ -1,6 +1,8 @@
 import { loadConfig } from "../config/index.js";
 import type { CommandRouter } from "../runtime/router.js";
 import { createSystemRunHandler } from "./system-run.js";
+import { systemInfoHandler } from "./system-info.js";
+import { systemWhichHandler } from "./system-which.js";
 
 export function registerAllHandlers(
   router: CommandRouter,
@@ -13,4 +15,10 @@ export function registerAllHandlers(
     "system.run",
     createSystemRunHandler(config.exec, workdir),
   );
+
+  router.register("system.info", (payload, client) =>
+    systemInfoHandler(payload, client, workdir),
+  );
+
+  router.register("system.which", systemWhichHandler);
 }
