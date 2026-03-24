@@ -1,8 +1,10 @@
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import type { GatewayClient } from "../client/index.js";
 import type { NodeInvokeRequestPayload, NodeInvokeResultParams } from "../protocol/index.js";
 import type { ExecConfig } from "../config/index.js";
+import { emitExecStarted, emitExecFinished, emitExecDenied } from "./node-events.js";
 
 const OUTPUT_CAP = 200_000; // 200KB max output capture
 
@@ -11,6 +13,9 @@ type SystemRunParams = {
   cwd?: string;
   env?: Record<string, string>;
   timeoutMs?: number;
+  sessionKey?: string;
+  runId?: string;
+  suppressNotifyOnExit?: boolean;
 };
 
 type RunResult = {
@@ -33,11 +38,14 @@ function parseRunParams(paramsJSON?: string | null): SystemRunParams | null {
       return null;
     }
     const obj = parsed as Record<string, unknown>;
-    const command = Array.isArray(obj.command)
-      ? (obj.command as string[]).filter((s) => typeof s === "string")
-      : typeof obj.command === "string"
-        ? [obj.command]
-        : null;
+    let command: string[] | null = null;
+    if (Array.isArray(obj.command)) {
+      command = (obj.command as string[]).filter((s) => typeof s === "string");
+    } else if (typeof obj.command === "string" && obj.command.trim()) {
+      command = [obj.command];
+    } else if (typeof obj.rawCommand === "string" && obj.rawCommand.trim()) {
+      command = ["sh", "-c", obj.rawCommand as string];
+    }
     if (!command || command.length === 0) {
       return null;
     }
@@ -50,6 +58,13 @@ function parseRunParams(paramsJSON?: string | null): SystemRunParams | null {
           : undefined,
       timeoutMs:
         typeof obj.timeoutMs === "number" ? obj.timeoutMs : undefined,
+      sessionKey:
+        typeof obj.sessionKey === "string" ? obj.sessionKey : undefined,
+      runId: typeof obj.runId === "string" ? obj.runId : undefined,
+      suppressNotifyOnExit:
+        typeof obj.suppressNotifyOnExit === "boolean"
+          ? obj.suppressNotifyOnExit
+          : undefined,
     };
   } catch {
     return null;
@@ -188,8 +203,20 @@ export function createSystemRunHandler(execConfig: ExecConfig, workdir: string) 
       return;
     }
 
+    const commandText = params.command.join(" ");
+    const sessionKey = params.sessionKey ?? "";
+    const runId = params.runId ?? randomUUID();
+    const suppressNotifyOnExit = params.suppressNotifyOnExit;
+
     // Security: check blocked commands
     if (isBlockedCommand(params.command, execConfig.blockedCommands)) {
+      void emitExecDenied(client, {
+        sessionKey,
+        runId,
+        command: commandText,
+        reason: "allowlist-miss",
+        suppressNotifyOnExit,
+      });
       await sendResult({
         id: payload.id,
         nodeId: payload.nodeId,
@@ -201,6 +228,13 @@ export function createSystemRunHandler(execConfig: ExecConfig, workdir: string) 
 
     // Security: validate cwd is within workdir
     if (params.cwd && !isPathWithinWorkdir(params.cwd, workdir)) {
+      void emitExecDenied(client, {
+        sessionKey,
+        runId,
+        command: commandText,
+        reason: "security=deny",
+        suppressNotifyOnExit,
+      });
       await sendResult({
         id: payload.id,
         nodeId: payload.nodeId,
@@ -228,8 +262,24 @@ export function createSystemRunHandler(execConfig: ExecConfig, workdir: string) 
     }
 
     activeCount++;
+    void emitExecStarted(client, {
+      sessionKey,
+      runId,
+      command: commandText,
+      suppressNotifyOnExit,
+    });
     try {
       const result = await runCommand(params, execConfig);
+      void emitExecFinished(client, {
+        sessionKey,
+        runId,
+        command: commandText,
+        exitCode: result.exitCode,
+        timedOut: result.timedOut,
+        success: result.exitCode === 0 && !result.timedOut,
+        output: result.stdout + result.stderr,
+        suppressNotifyOnExit,
+      });
       await sendResult({
         id: payload.id,
         nodeId: payload.nodeId,

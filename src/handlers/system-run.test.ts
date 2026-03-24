@@ -241,8 +241,11 @@ describe("handlers/system-run", () => {
           ok: true,
         }),
       );
-      const resultCall = mockClient.request.mock.calls[0];
-      const resultParams = resultCall[1] as { payloadJSON: string };
+      const resultCall = mockClient.request.mock.calls.find(
+        (c: unknown[]) => c[0] === "node.invoke.result",
+      );
+      expect(resultCall).toBeDefined();
+      const resultParams = resultCall![1] as { payloadJSON: string };
       const parsed = JSON.parse(resultParams.payloadJSON);
       expect(parsed.stdout.trim()).toBe("test");
       expect(parsed.exitCode).toBe(0);
