@@ -29,6 +29,14 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 const MAX_BACKOFF_MS = 30_000;
 const FORCE_STOP_GRACE_MS = 250;
 
+export type ConnectionHealth = {
+  connected: boolean;
+  connectedAtMs: number | null;
+  lastTickMs: number | null;
+  reconnectCount: number;
+  tickIntervalMs: number;
+};
+
 export class GatewayClient {
   private ws: WebSocket | null = null;
   private opts: GatewayClientOptions;
@@ -43,6 +51,8 @@ export class GatewayClient {
   private tickTimer: NodeJS.Timeout | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private readonly requestTimeoutMs: number;
+  private connectedAtMs: number | null = null;
+  private reconnectCount = 0;
 
   constructor(opts: GatewayClientOptions) {
     this.opts = opts;
@@ -168,6 +178,16 @@ export class GatewayClient {
     return this.ws !== null && this.ws.readyState === WebSocket.OPEN && this.connectSent;
   }
 
+  getHealth(): ConnectionHealth {
+    return {
+      connected: this.isConnected(),
+      connectedAtMs: this.connectedAtMs,
+      lastTickMs: this.lastTick,
+      reconnectCount: this.reconnectCount,
+      tickIntervalMs: this.tickIntervalMs,
+    };
+  }
+
   private queueConnect(): void {
     this.connectNonce = null;
     this.connectSent = false;
@@ -268,6 +288,7 @@ export class GatewayClient {
     void this.request<HelloOk>("connect", params)
       .then((helloOk) => {
         this.backoffMs = 1000;
+        this.connectedAtMs = Date.now();
         this.tickIntervalMs =
           typeof helloOk.policy?.tickIntervalMs === "number"
             ? helloOk.policy.tickIntervalMs
@@ -342,6 +363,8 @@ export class GatewayClient {
     if (this.closed) {
       return;
     }
+    this.connectedAtMs = null;
+    this.reconnectCount++;
     if (this.tickTimer) {
       clearInterval(this.tickTimer);
       this.tickTimer = null;
