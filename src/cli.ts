@@ -4,6 +4,10 @@ import { Command } from "commander";
 import { VERSION } from "./index.js";
 import { registerPairCommand } from "./cli/pair.js";
 import { registerStartCommand } from "./cli/start.js";
+import { registerStatusCommand } from "./cli/status.js";
+import { registerUnpairCommand } from "./cli/unpair.js";
+import { registerVersionCommand } from "./cli/version.js";
+import { registerDoctorCommand } from "./cli/doctor.js";
 
 const program = new Command();
 
@@ -14,5 +18,9 @@ program
 
 registerPairCommand(program);
 registerStartCommand(program);
+registerStatusCommand(program);
+registerUnpairCommand(program);
+registerVersionCommand(program);
+registerDoctorCommand(program);
 
 program.parse();
