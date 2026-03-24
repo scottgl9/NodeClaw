@@ -3,6 +3,7 @@
 import { Command } from "commander";
 import { VERSION } from "./index.js";
 import { registerPairCommand } from "./cli/pair.js";
+import { registerStartCommand } from "./cli/start.js";
 
 const program = new Command();
 
@@ -12,5 +13,6 @@ program
   .version(VERSION);
 
 registerPairCommand(program);
+registerStartCommand(program);
 
 program.parse();
