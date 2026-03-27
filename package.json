@@ -1,6 +1,6 @@
 {
-  "name": "@scottgl9/nodeclaw",
-  "version": "0.1.0",
+  "name": "nodeclaw",
+  "version": "0.1.0-alpha.1",
   "description": "Minimal OpenClaw node protocol client \u2014 everything a node needs, nothing it doesn't.",
   "type": "module",
   "main": "dist/index.js",
@@ -8,12 +8,19 @@
   "bin": {
     "nodeclaw": "dist/cli.js"
   },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "homepage": "https://github.com/scottgl9/NodeClaw",
   "repository": {
     "type": "git",
     "url": "https://github.com/scottgl9/NodeClaw.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "scripts": {
     "build": "tsup",
@@ -26,7 +33,12 @@
     "openclaw",
     "node",
     "remote-execution",
-    "websocket"
+    "websocket",
+    "ai-agent",
+    "local-ai",
+    "edge",
+    "raspberry-pi",
+    "automation"
   ],
   "license": "MIT",
   "engines": {
