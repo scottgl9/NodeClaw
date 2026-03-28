@@ -1,6 +1,7 @@
 export const PROTOCOL_VERSION = 3;
 
-export const CLIENT_NAME = "nodeclaw";
+// Must match the gateway's GATEWAY_CLIENT_IDS.NODE_HOST value.
+export const CLIENT_NAME = "node-host";
 
 export const CLIENT_MODES = {
   NODE: "node",

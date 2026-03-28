@@ -46,6 +46,7 @@ export async function startNode(opts: NodeRuntimeOptions = {}): Promise<{
 
   const client = new GatewayClient({
     url: config.gateway.url,
+    token: config.gateway.token,
     deviceIdentity: identity,
     deviceToken: storedAuth.token,
     role,

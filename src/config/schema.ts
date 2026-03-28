@@ -3,6 +3,8 @@ import { z } from "zod";
 export const GatewayConfigSchema = z.object({
   url: z.string().url().default("ws://127.0.0.1:18789"),
   tlsVerify: z.boolean().default(true),
+  /** Gateway auth token — required when the gateway has auth.mode=token. */
+  token: z.string().optional(),
 });
 
 export const DeviceConfigSchema = z.object({
