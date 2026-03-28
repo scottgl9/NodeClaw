@@ -4,7 +4,7 @@ import {
   storeDeviceAuthToken,
   loadDeviceAuthToken,
 } from "../crypto/index.js";
-import { resolveIdentityPath, resolveTokenStorePath } from "../config/index.js";
+import { resolveIdentityPath, resolveTokenStorePath, loadConfig, saveConfig } from "../config/index.js";
 import { GatewayClient } from "../client/index.js";
 import { VERSION } from "../index.js";
 import type { HelloOk, NodePairRequestParams } from "../protocol/index.js";
@@ -12,6 +12,8 @@ import type { HelloOk, NodePairRequestParams } from "../protocol/index.js";
 export type PairOptions = {
   gatewayUrl: string;
   deviceName?: string;
+  /** Gateway auth token (required when the gateway has auth.mode=token). */
+  gatewayToken?: string;
   env?: NodeJS.ProcessEnv;
 };
 
@@ -43,6 +45,7 @@ export async function pairWithGateway(opts: PairOptions): Promise<PairResult> {
 
     const client = new GatewayClient({
       url: opts.gatewayUrl,
+      token: opts.gatewayToken,
       deviceIdentity: identity,
       role,
       scopes: ["node.invoke"],
@@ -61,6 +64,13 @@ export async function pairWithGateway(opts: PairOptions): Promise<PairResult> {
             hello.auth.deviceToken,
             hello.auth.scopes,
           );
+          // Persist gateway URL and token to config so `nodeclaw start` works
+          const config = loadConfig(opts.env);
+          config.gateway.url = opts.gatewayUrl;
+          if (opts.gatewayToken) {
+            config.gateway.token = opts.gatewayToken;
+          }
+          saveConfig(config, opts.env);
           cleanup();
           resolve({
             deviceId: identity.deviceId,
