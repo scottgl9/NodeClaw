@@ -1,6 +1,6 @@
 {
   "name": "nodeclaw",
-  "version": "0.2.0-alpha.1",
+  "version": "0.2.0-alpha.2",
   "description": "Minimal OpenClaw node protocol client \u2014 everything a node needs, nothing it doesn't.",
   "type": "module",
   "main": "dist/index.js",
